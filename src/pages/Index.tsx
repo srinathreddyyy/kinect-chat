@@ -4,6 +4,7 @@ import { AuthPage } from './AuthPage';
 import { ChatPage } from './ChatPage';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ChatProvider } from '@/contexts/ChatContext';
+import { ContactsProvider } from '@/contexts/ContactsContext';
 
 const Index = () => {
   return (
@@ -21,9 +22,11 @@ const AuthContent = () => {
   }
 
   return (
-    <ChatProvider>
-      <ChatPage />
-    </ChatProvider>
+    <ContactsProvider>
+      <ChatProvider>
+        <ChatPage />
+      </ChatProvider>
+    </ContactsProvider>
   );
 };
 

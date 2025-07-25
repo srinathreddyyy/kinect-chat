@@ -17,6 +17,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: ''
   });
@@ -24,7 +25,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.name || !formData.email || !formData.phoneNumber || !formData.password || !formData.confirmPassword) {
       toast({
         title: "Validation Error",
         description: "Please fill in all fields",
@@ -51,7 +52,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
       return;
     }
 
-    const success = await register(formData.name, formData.email, formData.password);
+    const success = await register(formData.name, formData.email, formData.phoneNumber, formData.password);
     
     if (!success) {
       toast({
@@ -112,6 +113,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
               type="email"
               placeholder="Enter your email"
               value={formData.email}
+              onChange={handleInputChange}
+              className="bg-input/50 border-border/50"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              placeholder="+1 (555) 123-4567"
+              value={formData.phoneNumber}
               onChange={handleInputChange}
               className="bg-input/50 border-border/50"
               required

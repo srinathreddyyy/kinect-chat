@@ -4,12 +4,14 @@ interface User {
   id: string;
   email: string;
   name: string;
+  phoneNumber: string;
+  avatar?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, phoneNumber: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -48,7 +50,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existingUser = users.find((u: any) => u.email === email && u.password === password);
       
       if (existingUser) {
-        const userData = { id: existingUser.id, email: existingUser.email, name: existingUser.name };
+        const userData = { 
+          id: existingUser.id, 
+          email: existingUser.email, 
+          name: existingUser.name,
+          phoneNumber: existingUser.phoneNumber || ''
+        };
         setUser(userData);
         localStorage.setItem('chatapp_user', JSON.stringify(userData));
         return true;
@@ -61,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, phoneNumber: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Simulate API call
@@ -78,13 +85,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: Date.now().toString(),
         name,
         email,
+        phoneNumber,
         password
       };
       
       users.push(newUser);
       localStorage.setItem('chatapp_users', JSON.stringify(users));
       
-      const userData = { id: newUser.id, email: newUser.email, name: newUser.name };
+      const userData = { 
+        id: newUser.id, 
+        email: newUser.email, 
+        name: newUser.name,
+        phoneNumber: newUser.phoneNumber
+      };
       setUser(userData);
       localStorage.setItem('chatapp_user', JSON.stringify(userData));
       return true;
