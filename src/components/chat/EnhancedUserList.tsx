@@ -246,22 +246,20 @@ export const EnhancedUserList: React.FC = () => {
         <div className="flex items-center gap-3 p-3 bg-accent/20 rounded-lg border border-border/30 mb-4">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
-              {user?.name.charAt(0).toUpperCase()}
+              {user?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-foreground truncate">
-              {user?.name}
+              {user?.display_name || user?.email}
             </p>
             <p className="text-sm text-muted-foreground truncate">
               {user?.email}
             </p>
-            {user?.phoneNumber && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                {user.phoneNumber}
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              Online
+            </p>
           </div>
           <Badge className="bg-green-500">
             Online

@@ -1,18 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface User {
   id: string;
   email: string;
-  name: string;
-  phoneNumber: string;
-  avatar?: string;
+  display_name?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, phoneNumber: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (displayName: string, email: string, password: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -28,94 +30,141 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('chatapp_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile data
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              display_name: profile?.display_name,
+              avatar_url: profile?.avatar_url
+            });
+          }, 0);
+        } else {
+          setUser(null);
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        // Fetch user profile data
+        setTimeout(async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            display_name: profile?.display_name,
+            avatar_url: profile?.avatar_url
+          });
+        }, 0);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user exists (simulate database lookup)
-      const users = JSON.parse(localStorage.getItem('chatapp_users') || '[]');
-      const existingUser = users.find((u: any) => u.email === email && u.password === password);
-      
-      if (existingUser) {
-        const userData = { 
-          id: existingUser.id, 
-          email: existingUser.email, 
-          name: existingUser.name,
-          phoneNumber: existingUser.phoneNumber || ''
-        };
-        setUser(userData);
-        localStorage.setItem('chatapp_user', JSON.stringify(userData));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const register = async (name: string, email: string, phoneNumber: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const users = JSON.parse(localStorage.getItem('chatapp_users') || '[]');
-      if (users.find((u: any) => u.email === email)) {
-        return false; // User already exists
-      }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        name,
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        phoneNumber,
-        password
-      };
+        password,
+      });
       
-      users.push(newUser);
-      localStorage.setItem('chatapp_users', JSON.stringify(users));
+      if (error) {
+        return { error: error.message };
+      }
       
-      const userData = { 
-        id: newUser.id, 
-        email: newUser.email, 
-        name: newUser.name,
-        phoneNumber: newUser.phoneNumber
-      };
-      setUser(userData);
-      localStorage.setItem('chatapp_user', JSON.stringify(userData));
-      return true;
+      return {};
     } catch (error) {
-      return false;
+      return { error: 'An unexpected error occurred' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('chatapp_user');
-    localStorage.removeItem('chatapp_activeChat');
+  const register = async (displayName: string, email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            display_name: displayName
+          }
+        }
+      });
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      return {};
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      // Clean up auth state
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Force page reload for clean state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force reload even if logout fails
+      window.location.href = '/';
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

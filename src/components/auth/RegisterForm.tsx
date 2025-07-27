@@ -52,18 +52,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
       return;
     }
 
-    const success = await register(formData.name, formData.email, formData.phoneNumber, formData.password);
+    const result = await register(formData.name, formData.email, formData.password);
     
-    if (!success) {
+    if (result.error) {
       toast({
         title: "Registration Failed",
-        description: "User already exists or registration failed",
+        description: result.error,
         variant: "destructive"
       });
     } else {
       toast({
         title: "Welcome to SimpleChat!",
-        description: "Your account has been created successfully"
+        description: "Your account has been created successfully. Please check your email to verify your account."
       });
     }
   };

@@ -31,12 +31,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       return;
     }
 
-    const success = await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password);
     
-    if (!success) {
+    if (result.error) {
       toast({
         title: "Login Failed",
-        description: "Invalid email or password",
+        description: result.error,
         variant: "destructive"
       });
     } else {
