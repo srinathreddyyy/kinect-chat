@@ -18,9 +18,12 @@ import {
   Heart,
   UserMinus,
   Send,
-  Phone
+  Phone,
+  LogOut,
+  Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const EnhancedUserList: React.FC = () => {
   const { 
@@ -38,6 +41,7 @@ export const EnhancedUserList: React.FC = () => {
     hasContactPermission, 
     inviteContact 
   } = useContacts();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -211,13 +215,58 @@ export const EnhancedUserList: React.FC = () => {
     </div>
   );
 
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of SimpleChat"
+    });
+  };
+
   return (
     <Card className="h-full bg-card/50 backdrop-blur-lg border-border/50">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <MessageCircle className="h-5 w-5 text-primary" />
-          SimpleChat
-        </CardTitle>
+        <div className="flex items-center justify-between mb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            SimpleChat
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="hover:bg-destructive/10 hover:text-destructive"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* User Profile Section */}
+        <div className="flex items-center gap-3 p-3 bg-accent/20 rounded-lg border border-border/30 mb-4">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+              {user?.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground truncate">
+              {user?.name}
+            </p>
+            <p className="text-sm text-muted-foreground truncate">
+              {user?.email}
+            </p>
+            {user?.phoneNumber && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {user.phoneNumber}
+              </p>
+            )}
+          </div>
+          <Badge className="bg-green-500">
+            Online
+          </Badge>
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
